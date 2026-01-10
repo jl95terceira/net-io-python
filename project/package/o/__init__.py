@@ -1,8 +1,7 @@
 import abc as _abc
 import typing as _typing
 
-from .. import (Managed as _Managed, 
-                FunctionalManaged as _FunctionalManaged)
+from .. import (Managed as _Managed)
 from .. import constants as _constants
 from .. import util as _util
 
@@ -31,7 +30,7 @@ class SimpleManagedOutputStream(_Managed[OutputStream]):
     @_typing.override
     def do(self, handler:_typing.Callable[[OutputStream],None]):
 
-        handler.do(self._outs)
+        handler(self._outs)
 
 class SenderIf[T](_typing.Protocol):
 
@@ -71,6 +70,6 @@ class Sender(SenderIf[bytes]):
     @_typing.override
     def send(self, data:bytes):
 
-        self._outs.do(_FunctionalManaged(lambda outs: self._send_managed(outs, data)))
+        self._outs.do(lambda outs: self._send_managed(outs, data))
 
 from . import collections
