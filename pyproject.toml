@@ -22,7 +22,7 @@ Homepage = "https://github.com/jl95terceira/net-io-python"
 Issues = "https://github.com/jl95terceira/net-io-python/issues"
 
 [tool.hatch.build.targets.wheel]
-packages = ["project/package","project/package_DEPRECATED"]
+packages = ["project/package"]
 
 [tool.hatch.build.targets.wheel.sources]
 "project/package"="jl95/net/io"
