@@ -7,35 +7,27 @@ from .. import package
 
 TEST_PORT=53535
 TEST_ADDRESS=("127.0.0.1",TEST_PORT,)
-TEST_MESSAGES=[
-    'Hello', 
-    'World',
-    '', 
-    'This', 
-    'Is', 
-    'A', 
-    'Test'
-]
 
 class Tests(unittest.TestCase):
     
     def _assert_receives(self, recv:package.ReceiverIf[bytes], expected:list[str]):
 
-        print(f'Expecting messages: {expected}')
+        message_shortened = lambda m: repr(m) if len(m) < 20 else repr(m[:47] + f"...[{len(m) - 47} more bytes]")
+        print(f'Expecting {len(expected)} messages')
         remaining = collections.deque(expected)
         def handler(msg_bytes:bytes):
             msg = msg_bytes.decode('utf-8')
             self.assertTrue(remaining)
             self.assertEqual(msg, remaining.popleft())
-            print(f'Got message {len(expected) - len(remaining)} of {len(expected)}: {repr(msg)}')
+            print(f'Got message {len(expected) - len(remaining)} of {len(expected)}: {message_shortened(msg)}')
             print(f'{len(remaining)} messages remaining')
             return bool(remaining)
         t = threading.Thread(target=lambda: recv.recv_while(handler))
         t.start()
         return t
 
-    def test(self):
-        
+    def _test_send_messages(self, messages:list[str]):
+
         server = socket.socket()
         server.bind(TEST_ADDRESS)
         server.listen(1)
@@ -54,12 +46,34 @@ class Tests(unittest.TestCase):
         rt.join()
         recver = recv_pointer[0]
         assert recver is not None
-        expected_messages = TEST_MESSAGES
-        t = self._assert_receives(recver, expected_messages)
-        for msg in expected_messages:
+        t = self._assert_receives(recver, messages)
+        for msg in messages:
             sender.send(msg.encode('utf-8'))
         t.join()
         rsock = rsock_pointer[0]
         assert rsock is not None
         rsock.close()
         ssock.close()
+
+    def test(self):
+        
+        self._test_send_messages([
+            'Hello', 
+            'World',
+            '', 
+            'This', 
+            'Is', 
+            'A', 
+            'Test'
+        ])
+
+    def test2(self):
+
+        self._test_send_messages([
+            'Short message',
+            'This is a bit longer message that should still be sent without issues.',
+            'A'*4096,
+            'B'*8192,
+            '',
+            'Final message'
+        ])
