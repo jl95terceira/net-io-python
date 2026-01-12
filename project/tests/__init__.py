@@ -12,12 +12,13 @@ class Tests(unittest.TestCase):
     
     def _assert_receives(self, recv:i.ReceiverIf[bytes], expected:list[str]):
 
+        print(f'Expecting messages: {expected}')
         remaining = collections.deque(expected)
         def handler(msg_bytes:bytes):
             msg = msg_bytes.decode('utf-8')
             self.assertTrue(remaining)
             self.assertEqual(msg, remaining.popleft())
-            print(f'Got message: {msg}')
+            print(f'Got message {len(expected) - len(remaining)} of {len(expected)}: {repr(msg)}')
             print(f'{len(remaining)} messages remaining')
             return bool(remaining)
         t = threading.Thread(target=lambda: recv.recv_while(handler))
