@@ -54,8 +54,8 @@ class Receiver(ReceiverIf[bytes]):
 
     def _recv_managed(self, ins:InputStream, handler:_typing.Callable[[bytes],bool]):
 
+        continue_loop = True
         while True:
-            continue_loop = True
             data = None
             content_parts_list:list[bytes] = []
             while True:
@@ -67,16 +67,16 @@ class Receiver(ReceiverIf[bytes]):
                         continue_loop = handler(data)
                         if not continue_loop: break
                     continue
-                if not continue_loop: break
                 size_frame = ins.recv(_constants.SIZE_FRAME_SIZE)
                 content_size = _util.bytes_to_int(size_frame)
                 content_frame = ins.recv(_constants.CONTENT_FRAME_SIZE)
                 if content_size > 0:
                     content_parts_list.append(content_frame[:content_size])
+            if not continue_loop: break
 
     @_typing.override
     def recv_while(self, handler:_typing.Callable[[bytes],bool]):
 
         self._ins.do(lambda ins: self._recv_managed(ins, handler))
 
-from . import collections
+from . import collections, util

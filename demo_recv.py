@@ -9,9 +9,7 @@ server.listen(1)
 sock,addr = server.accept()
 server.close()
 print('Accepted')
-recver = i.Receiver(
-    i.SimpleManagedInputStream((
-        i.collections.SimpleSocketInputStream(sock))))
+recv = i.util.receiver_from_socket(sock)
 def handler(data:bytes):
     print(f'<<< {data.decode('utf-8')}')
-recver.recv(handler)
+recv.recv(handler)

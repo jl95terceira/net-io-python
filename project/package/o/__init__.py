@@ -72,4 +72,4 @@ class Sender(SenderIf[bytes]):
 
         self._outs.do(lambda outs: self._send_managed(outs, data))
 
-from . import collections
+from . import collections, util
