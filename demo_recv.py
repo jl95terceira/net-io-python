@@ -1,6 +1,6 @@
 import socket
 
-from project.package import i
+from project.package import util
 
 server = socket.socket()
 server.bind(("127.0.0.1",4242,))
@@ -9,7 +9,7 @@ server.listen(1)
 sock,addr = server.accept()
 server.close()
 print('Accepted')
-recv = i.util.receiver_from_socket(sock)
+recv = util.receiver_from_socket(sock)
 def handler(data:bytes):
     print(f'<<< {data.decode('utf-8')}')
 recv.recv(handler)

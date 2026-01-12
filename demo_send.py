@@ -1,11 +1,11 @@
 import socket
 
-from project.package import o
+from project.package import util
 
 sock = socket.socket()
 sock.connect(("127.0.0.1",4242,))
 print('Connected')
-sender = o.util.sender_from_socket(sock)
+sender = util.sender_from_socket(sock)
 n_empty = [0]
 while True:
     msg = input('>>> ')

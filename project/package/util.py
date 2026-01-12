@@ -1,7 +1,5 @@
 from collections import deque as _deque
 
-class NegativeNumberNotConvertibleToBytes(Exception): pass
-
 _ZERO_AS_BYTES = bytes([0])
 def int_to_bytes(x:int):
 
@@ -17,3 +15,25 @@ def int_to_bytes(x:int):
 def bytes_to_int(bb:bytes):
 
     return sum(b*256**(len(bb)-1-i) for i,b in enumerate(bb))
+
+from . import (Receiver as _Receiver, 
+               Sender as _Sender, 
+               SimpleManagedInputStream as _SimpleManagedInputStream, 
+               SimpleManagedOutputStream as _SimpleManagedOutputStream, 
+               collections as _collections)
+import socket as _socket
+
+class NegativeNumberNotConvertibleToBytes(Exception): pass
+
+def receiver_from_socket(sock: _socket.socket):
+
+    return  _Receiver(
+        _SimpleManagedInputStream((
+            _collections.SimpleSocketInputStream(sock))))
+
+
+def sender_from_socket(sock: _socket.socket):
+
+    return  _Sender(
+        _SimpleManagedOutputStream((
+            _collections.SimpleSocketOutputStream(sock))))

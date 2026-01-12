@@ -3,14 +3,23 @@ import socket
 import threading
 import unittest
 
-from ..package import i,o
+from .. import package
 
 TEST_PORT=53535
 TEST_ADDRESS=("127.0.0.1",TEST_PORT,)
+TEST_MESSAGES=[
+    'Hello', 
+    'World',
+    '', 
+    'This', 
+    'Is', 
+    'A', 
+    'Test'
+]
 
 class Tests(unittest.TestCase):
     
-    def _assert_receives(self, recv:i.ReceiverIf[bytes], expected:list[str]):
+    def _assert_receives(self, recv:package.ReceiverIf[bytes], expected:list[str]):
 
         print(f'Expecting messages: {expected}')
         remaining = collections.deque(expected)
@@ -31,21 +40,21 @@ class Tests(unittest.TestCase):
         server.bind(TEST_ADDRESS)
         server.listen(1)
         rsock_pointer:list[socket.socket|None] = [None]
-        recv_pointer:list[i.Receiver|None] = [None]
+        recv_pointer:list[package.Receiver|None] = [None]
         def get_receiver():
             rsock, addr = server.accept()
             rsock_pointer[0] = rsock
-            recv_pointer[0] = i.util.receiver_from_socket(rsock)
+            recv_pointer[0] = package.util.receiver_from_socket(rsock)
             server.close()
         rt = threading.Thread(target=get_receiver)
         rt.start()
         ssock = socket.socket()
         ssock.connect(TEST_ADDRESS)
-        sender = o.util.sender_from_socket(ssock)
+        sender = package.util.sender_from_socket(ssock)
         rt.join()
         recver = recv_pointer[0]
         assert recver is not None
-        expected_messages = ['Hello', 'World', 'This', 'Is', 'A', 'Test']
+        expected_messages = TEST_MESSAGES
         t = self._assert_receives(recver, expected_messages)
         for msg in expected_messages:
             sender.send(msg.encode('utf-8'))
