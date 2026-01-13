@@ -62,14 +62,16 @@ class ReceiverIf[T](_typing.Protocol):
 
         return self.recv_while(lambda data: self._handle_and_continue(handler, data))
 
+class GenericReceiver[T](ReceiverIf[T]):
 
-class Receiver(ReceiverIf[bytes]):
+    @_abc.abstractmethod
+    def deserialize(self, data:bytes) -> T: ...
 
     def __init__(self, ins:Managed[InputStream]):
 
         self._ins = ins
 
-    def _recv_managed(self, ins:InputStream, handler:_typing.Callable[[bytes],bool]):
+    def _recv_managed(self, ins:InputStream, handler:_typing.Callable[[T],bool]):
 
         continue_loop = True
         while True:
@@ -81,7 +83,7 @@ class Receiver(ReceiverIf[bytes]):
                     if content_parts_list:
                         data = b''.join(content_parts_list)
                         content_parts_list = []
-                        continue_loop = handler(data)
+                        continue_loop = handler(self.deserialize(data))
                         if not continue_loop: break
                     continue
                 size_frame = ins.recv(_constants.SIZE_FRAME_SIZE)
@@ -91,10 +93,29 @@ class Receiver(ReceiverIf[bytes]):
             if not continue_loop: break
 
     @_typing.override
-    def recv_while(self, handler:_typing.Callable[[bytes],bool]):
+    def recv_while(self, handler:_typing.Callable[[T],bool]):
 
         self._ins.do(lambda ins: self._recv_managed(ins, handler))
 
+    def adapted[U](self, f:_typing.Callable[[T],U]) -> 'GenericReceiver[U]':
+
+        parent = self
+
+        class AdaptedReceiver(GenericReceiver[U]):
+
+            @_typing.override
+            def deserialize(self, data:bytes) -> U:
+
+                return f(parent.deserialize(data))
+
+        return AdaptedReceiver(self._ins)
+
+class Receiver(GenericReceiver[bytes]):
+
+    @_typing.override
+    def deserialize(self, data:bytes) -> bytes:
+
+        return data # as-is
 
 class OutputStream(_typing.Protocol):
 
@@ -132,14 +153,18 @@ class SenderIf[T](_typing.Protocol):
     def send(self, data:T): ...
 
 
-class Sender(SenderIf[bytes]):
+class GenericSender[T](SenderIf[T]):
+
+    @_abc.abstractmethod
+    def serialize(self, data:T) -> bytes: ...
 
     def __init__(self, outs:Managed[OutputStream]):
 
         self._outs = outs
 
-    def _send_managed(self, outs:OutputStream, data:bytes):
-
+    def _send_managed(self, outs:OutputStream, data_:T):
+        
+        data = self.serialize(data_)
         if len(data) > 0:
 
             N = (len(data) - 1) // _constants.CONTENT_FRAME_SIZE + 1
@@ -167,11 +192,30 @@ class Sender(SenderIf[bytes]):
 
         outs.send(_constants.NO_CONTENT_SIGNAL)
 
-
     @_typing.override
-    def send(self, data:bytes):
+    def send(self, data:T):
 
         self._outs.do(lambda outs: self._send_managed(outs, data))
+
+    def adapted[U](self, f:_typing.Callable[[U],T]) -> 'GenericSender[U]':
+
+        parent = self
+
+        class AdaptedSender(GenericSender[U]):
+
+            @_typing.override
+            def serialize(self, data:U) -> bytes:
+
+                return parent.serialize(f(data))
+
+        return AdaptedSender(self._outs)
+
+class Sender(GenericSender[bytes]):
+
+    @_typing.override
+    def serialize(self, data:bytes) -> bytes:
+
+        return data # as-is
 
 from . import constants as _constants
 from . import util as _util

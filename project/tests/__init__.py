@@ -10,13 +10,12 @@ TEST_ADDRESS=("127.0.0.1",TEST_PORT,)
 
 class Tests(unittest.TestCase):
     
-    def _assert_receives(self, recv:package.ReceiverIf[bytes], expected:list[str]):
+    def _assert_receives(self, recv:package.ReceiverIf[str], expected:list[str]):
 
         message_shortened = lambda m: repr(m) if len(m) < 20 else repr(m[:47] + f"...[{len(m) - 47} more bytes]")
         print(f'Expecting {len(expected)} messages')
         remaining = collections.deque(expected)
-        def handler(msg_bytes:bytes):
-            msg = msg_bytes.decode('utf-8')
+        def handler(msg:str):
             self.assertTrue(remaining)
             self.assertEqual(msg, remaining.popleft())
             print(f'Got message {len(expected) - len(remaining)} of {len(expected)}: {message_shortened(msg)}')
@@ -32,23 +31,23 @@ class Tests(unittest.TestCase):
         server.bind(TEST_ADDRESS)
         server.listen(1)
         rsock_pointer:list[socket.socket|None] = [None]
-        recv_pointer:list[package.Receiver|None] = [None]
+        recv_pointer:list[package.ReceiverIf[str]|None] = [None]
         def get_receiver():
             rsock, addr = server.accept()
             rsock_pointer[0] = rsock
-            recv_pointer[0] = package.util.receiver_from_socket(rsock)
+            recv_pointer[0] = package.util.receiver_from_socket(rsock).adapted(bytes.decode)
             server.close()
         rt = threading.Thread(target=get_receiver)
         rt.start()
         ssock = socket.socket()
         ssock.connect(TEST_ADDRESS)
-        sender = package.util.sender_from_socket(ssock)
+        sender = package.util.sender_from_socket(ssock).adapted(str.encode)
         rt.join()
         recver = recv_pointer[0]
         assert recver is not None
         t = self._assert_receives(recver, messages)
         for msg in messages:
-            sender.send(msg.encode('utf-8'))
+            sender.send(msg)
         t.join()
         rsock = rsock_pointer[0]
         assert rsock is not None
