@@ -147,13 +147,13 @@ class SimpleManagedOStream(Managed[OStream]):
         handler(self._outs)
 
 
-class SenderIf[T](_typing.Protocol):
+class Sender[T](_typing.Protocol):
 
     @_abc.abstractmethod
     def send(self, data:T): ...
 
 
-class OStreamSender[T](SenderIf[T]):
+class OStreamSender[T](Sender[T]):
 
     @_abc.abstractmethod
     def serialize(self, data:T) -> bytes: ...
