@@ -10,7 +10,7 @@ TEST_ADDRESS=("127.0.0.1",TEST_PORT,)
 
 class Tests(unittest.TestCase):
     
-    def _assert_receives(self, recv:package.ReceiverIf[str], expected:list[str]):
+    def _assert_receives(self, recv:package.Receiver[str], expected:list[str]):
 
         message_shortened = lambda m: repr(m) if len(m) < 20 else repr(m[:47] + f"...[{len(m) - 47} more bytes]")
         print(f'Expecting {len(expected)} messages')
@@ -31,7 +31,7 @@ class Tests(unittest.TestCase):
         server.bind(TEST_ADDRESS)
         server.listen(1)
         rsock_pointer:list[socket.socket|None] = [None]
-        recv_pointer:list[package.ReceiverIf[str]|None] = [None]
+        recv_pointer:list[package.Receiver[str]|None] = [None]
         def get_receiver():
             rsock, addr = server.accept()
             rsock_pointer[0] = rsock

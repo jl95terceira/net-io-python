@@ -16,10 +16,10 @@ def bytes_to_int(bb:bytes):
 
     return sum(b*256**(len(bb)-1-i) for i,b in enumerate(bb))
 
-from . import (Receiver as _Receiver, 
-               Sender as _Sender, 
-               SimpleManagedInputStream as _SimpleManagedInputStream, 
-               SimpleManagedOutputStream as _SimpleManagedOutputStream, 
+from . import (BytesIStreamReceiver as _Receiver, 
+               BytesOStreamSender as _Sender, 
+               SimpleManagedIStream as _SimpleManagedInputStream, 
+               SimpleManagedOStream as _SimpleManagedOutputStream, 
                collections as _collections)
 import socket as _socket
 
@@ -29,11 +29,11 @@ def receiver_from_socket(sock: _socket.socket):
 
     return  _Receiver(
         _SimpleManagedInputStream((
-            _collections.SimpleSocketInputStream(sock))))
+            _collections.SimpleSocketIStream(sock))))
 
 
 def sender_from_socket(sock: _socket.socket):
 
     return  _Sender(
         _SimpleManagedOutputStream((
-            _collections.SimpleSocketOutputStream(sock))))
+            _collections.SimpleSocketOStream(sock))))

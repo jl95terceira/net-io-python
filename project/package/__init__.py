@@ -18,13 +18,13 @@ class FunctionalManaged[T](Managed[T]):
         self._function(handler)
 
 
-class InputStream(_typing.Protocol):
+class IStream(_typing.Protocol):
 
     @_abc.abstractmethod
     def recv(self, n:int) -> bytes: ...
 
 
-class FunctionalInputStream(InputStream):
+class FunctionalIStream(IStream):
 
     def __init__(self, function:_typing.Callable[[int],bytes]):
 
@@ -36,19 +36,19 @@ class FunctionalInputStream(InputStream):
         return self._function(n)
 
 
-class SimpleManagedInputStream(Managed[InputStream]):
+class SimpleManagedIStream(Managed[IStream]):
 
-    def __init__(self, ins:InputStream):
+    def __init__(self, ins:IStream):
 
         self._ins = ins
 
     @_typing.override
-    def do(self, handler:_typing.Callable[[InputStream],None]):
+    def do(self, handler:_typing.Callable[[IStream],None]):
 
         handler(self._ins)
 
 
-class ReceiverIf[T](_typing.Protocol):
+class Receiver[T](_typing.Protocol):
 
     @_abc.abstractmethod
     def recv_while(self, handler:_typing.Callable[[T],bool]): ...
@@ -62,16 +62,16 @@ class ReceiverIf[T](_typing.Protocol):
 
         return self.recv_while(lambda data: self._handle_and_continue(handler, data))
 
-class GenericReceiver[T](ReceiverIf[T]):
+class IStreamReceiver[T](Receiver[T]):
 
     @_abc.abstractmethod
     def deserialize(self, data:bytes) -> T: ...
 
-    def __init__(self, ins:Managed[InputStream]):
+    def __init__(self, ins:Managed[IStream]):
 
         self._ins = ins
 
-    def _recv_managed(self, ins:InputStream, handler:_typing.Callable[[T],bool]):
+    def _recv_managed(self, ins:IStream, handler:_typing.Callable[[T],bool]):
 
         continue_loop = True
         while True:
@@ -97,11 +97,11 @@ class GenericReceiver[T](ReceiverIf[T]):
 
         self._ins.do(lambda ins: self._recv_managed(ins, handler))
 
-    def adapted[U](self, f:_typing.Callable[[T],U]) -> 'GenericReceiver[U]':
+    def adapted[U](self, f:_typing.Callable[[T],U]) -> 'IStreamReceiver[U]':
 
         parent = self
 
-        class AdaptedReceiver(GenericReceiver[U]):
+        class AdaptedReceiver(IStreamReceiver[U]):
 
             @_typing.override
             def deserialize(self, data:bytes) -> U:
@@ -110,20 +110,20 @@ class GenericReceiver[T](ReceiverIf[T]):
 
         return AdaptedReceiver(self._ins)
 
-class Receiver(GenericReceiver[bytes]):
+class BytesIStreamReceiver(IStreamReceiver[bytes]):
 
     @_typing.override
     def deserialize(self, data:bytes) -> bytes:
 
         return data # as-is
 
-class OutputStream(_typing.Protocol):
+class OStream(_typing.Protocol):
 
     @_abc.abstractmethod
     def send(self, data:bytes): ...
 
 
-class FunctionalOutputStream(OutputStream):
+class FunctionalOStream(OStream):
 
     def __init__(self, function:_typing.Callable[[bytes],None]):
 
@@ -135,14 +135,14 @@ class FunctionalOutputStream(OutputStream):
         self._function(data)
 
 
-class SimpleManagedOutputStream(Managed[OutputStream]):
+class SimpleManagedOStream(Managed[OStream]):
 
-    def __init__(self, outs:OutputStream):
+    def __init__(self, outs:OStream):
 
         self._outs = outs
 
     @_typing.override
-    def do(self, handler:_typing.Callable[[OutputStream],None]):
+    def do(self, handler:_typing.Callable[[OStream],None]):
 
         handler(self._outs)
 
@@ -153,16 +153,16 @@ class SenderIf[T](_typing.Protocol):
     def send(self, data:T): ...
 
 
-class GenericSender[T](SenderIf[T]):
+class OStreamSender[T](SenderIf[T]):
 
     @_abc.abstractmethod
     def serialize(self, data:T) -> bytes: ...
 
-    def __init__(self, outs:Managed[OutputStream]):
+    def __init__(self, outs:Managed[OStream]):
 
         self._outs = outs
 
-    def _send_managed(self, outs:OutputStream, data_:T):
+    def _send_managed(self, outs:OStream, data_:T):
         
         data = self.serialize(data_)
         if len(data) > 0:
@@ -197,11 +197,11 @@ class GenericSender[T](SenderIf[T]):
 
         self._outs.do(lambda outs: self._send_managed(outs, data))
 
-    def adapted[U](self, f:_typing.Callable[[U],T]) -> 'GenericSender[U]':
+    def adapted[U](self, f:_typing.Callable[[U],T]) -> 'OStreamSender[U]':
 
         parent = self
 
-        class AdaptedSender(GenericSender[U]):
+        class AdaptedSender(OStreamSender[U]):
 
             @_typing.override
             def serialize(self, data:U) -> bytes:
@@ -210,7 +210,7 @@ class GenericSender[T](SenderIf[T]):
 
         return AdaptedSender(self._outs)
 
-class Sender(GenericSender[bytes]):
+class BytesOStreamSender(OStreamSender[bytes]):
 
     @_typing.override
     def serialize(self, data:bytes) -> bytes:

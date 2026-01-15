@@ -1,10 +1,10 @@
-from . import InputStream, OutputStream
+from . import IStream, OStream
 
 import socket as _socket
 import typing as _typing
 
 
-class SimpleSocketInputStream(InputStream):
+class SimpleSocketIStream(IStream):
 
     def __init__(self, sock:_socket.socket):
 
@@ -16,7 +16,7 @@ class SimpleSocketInputStream(InputStream):
         return self._sock.recv(n)
 
 
-class SimpleSocketOutputStream(OutputStream):
+class SimpleSocketOStream(OStream):
 
     def __init__(self, sock:_socket.socket):
 
