@@ -43,16 +43,14 @@ class Tests(unittest.TestCase):
         ssock.connect(TEST_ADDRESS)
         sender = package.util.sender_from_socket(ssock).adapted(str.encode)
         rt.join()
-        recver = recv_pointer[0]
-        assert recver is not None
-        t = self._assert_receives(recver, messages)
+        receiver = recv_pointer[0]
+        assert receiver is not None
+        t = self._assert_receives(receiver, messages)
         for msg in messages:
             sender.send(msg)
         t.join()
-        rsock = rsock_pointer[0]
-        assert rsock is not None
-        rsock.close()
-        ssock.close()
+        sender  .close()
+        receiver.close()
 
     def test(self):
         

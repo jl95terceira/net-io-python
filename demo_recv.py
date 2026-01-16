@@ -6,10 +6,14 @@ server = socket.socket()
 server.bind(("127.0.0.1",4242,))
 print('Bound')
 server.listen(1)
-sock,addr = server.accept()
-server.close()
+recv = util.receiver_from_socket(server.accept()[0])
 print('Accepted')
-recv = util.receiver_from_socket(sock)
+server.close()
 def handler(data:bytes):
     print(f'<<< {data.decode('utf-8')}')
-recv.recv(handler)
+try:
+    recv.recv(handler)
+except KeyboardInterrupt:
+    pass
+recv.close()
+print('Done.')

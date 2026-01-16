@@ -16,5 +16,5 @@ while True:
         continue
     n_empty[0] = 0
     sender.send(msg.encode('utf-8'))
-sock.close()
+sender.close()
 print('Done')

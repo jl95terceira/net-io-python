@@ -1,40 +1,60 @@
 import abc as _abc
 import typing as _typing
 
+class Closeable(_typing.Protocol):
+
+    @_abc.abstractmethod
+    def close(self): ...
+
 class Managed[T](_typing.Protocol):
 
     @_abc.abstractmethod
     def do(self, handler:_typing.Callable[[T],None]): ...
 
+    @_abc.abstractmethod
+    def close(self): ...
+
 class FunctionalManaged[T](Managed[T]):
 
-    def __init__(self, function:_typing.Callable[[_typing.Callable[[T],None]],None]):
+    def __init__(self, 
+                 function:_typing.Callable[[_typing.Callable[[T],None]],None],
+                 close:_typing.Callable[[],None]):
 
         self._function = function
+        self._close = close
 
     @_typing.override
     def do(self, handler:_typing.Callable[[T],None]): 
 
         self._function(handler)
 
+    @_typing.override
+    def close(self):
 
-class IStream(_typing.Protocol):
+        self._close()
+class IStream(Closeable, _typing.Protocol):
 
     @_abc.abstractmethod
     def recv(self, n:int) -> bytes: ...
 
-
 class FunctionalIStream(IStream):
 
-    def __init__(self, function:_typing.Callable[[int],bytes]):
+    def __init__(self, 
+                 function:_typing.Callable[[int],bytes],
+                 close:_typing.Callable[[],None]):
 
         self._function = function
+        self._close = close
 
     @_typing.override
     def recv(self, n:int):
 
         return self._function(n)
 
+    @_typing.override
+    def close(self):
+
+        self._close()
 
 class SimpleManagedIStream(Managed[IStream]):
 
@@ -47,8 +67,12 @@ class SimpleManagedIStream(Managed[IStream]):
 
         handler(self._ins)
 
+    @_typing.override
+    def close(self):
+        
+        self._ins.close()
 
-class Receiver[T](_typing.Protocol):
+class Receiver[T](Closeable, _typing.Protocol):
 
     @_abc.abstractmethod
     def recv_while(self, handler:_typing.Callable[[T],bool]): ...
@@ -97,6 +121,11 @@ class IStreamReceiver[T](Receiver[T]):
 
         self._ins.do(lambda ins: self._recv_managed(ins, handler))
 
+    @_typing.override
+    def close(self):
+
+        self._ins.close()
+
     def adapted[U](self, f:_typing.Callable[[T],U]) -> 'IStreamReceiver[U]':
 
         parent = self
@@ -117,24 +146,29 @@ class BytesIStreamReceiver(IStreamReceiver[bytes]):
 
         return data # as-is
 
-class OStream(_typing.Protocol):
+class OStream(Closeable, _typing.Protocol):
 
     @_abc.abstractmethod
     def send(self, data:bytes): ...
 
-
 class FunctionalOStream(OStream):
 
-    def __init__(self, function:_typing.Callable[[bytes],None]):
+    def __init__(self, 
+                 function:_typing.Callable[[bytes],None],
+                 close:_typing.Callable[[],None]):
 
         self._function = function
+        self._close = close
 
     @_typing.override
     def send(self, data:bytes):
 
         self._function(data)
 
+    @_typing.override
+    def close(self):
 
+        self._close()
 class SimpleManagedOStream(Managed[OStream]):
 
     def __init__(self, outs:OStream):
@@ -146,12 +180,15 @@ class SimpleManagedOStream(Managed[OStream]):
 
         handler(self._outs)
 
+    @_typing.override
+    def close(self):
+        
+        self._outs.close()
 
-class Sender[T](_typing.Protocol):
+class Sender[T](Closeable, _typing.Protocol):
 
     @_abc.abstractmethod
     def send(self, data:T): ...
-
 
 class OStreamSender[T](Sender[T]):
 
@@ -196,6 +233,11 @@ class OStreamSender[T](Sender[T]):
     def send(self, data:T):
 
         self._outs.do(lambda outs: self._send_managed(outs, data))
+    
+    @_typing.override
+    def close(self):
+
+        self._outs.close()
 
     def adapted[U](self, f:_typing.Callable[[U],T]) -> 'OStreamSender[U]':
 

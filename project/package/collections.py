@@ -14,7 +14,11 @@ class SimpleSocketIStream(IStream):
     def recv(self, n:int):
 
         return self._sock.recv(n)
+    
+    @_typing.override
+    def close(self):
 
+        self._sock.close()
 
 class SimpleSocketOStream(OStream):
 
@@ -26,3 +30,8 @@ class SimpleSocketOStream(OStream):
     def send(self, data:bytes):
 
         self._sock.sendall(data)
+    
+    @_typing.override
+    def close(self):
+
+        self._sock.close()
